@@ -50,6 +50,7 @@ InpTimeframe=5
 InpMaxSpreadPoints=50
 InpFridayCutoff=20:00
 InpRiskPercent=0.5
+InpMaxDailyLossPct=3
 InpTelegramToken=$token
 "@ | Set-Content -Path (Join-Path $presets 'XauRsiTrend.set') -Encoding ASCII
 if ($token) { Write-Host 'Telegram: token set' -ForegroundColor Green } else { Write-Host 'Telegram: not set (optional)' }
