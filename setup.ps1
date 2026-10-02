@@ -1,0 +1,63 @@
+# TradeFull one-line installer for XM MetaTrader 5 (Windows)
+# Usage (PowerShell):  irm https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/setup.ps1 | iex
+# - downloads TradeFull_Scalper.ex5 into MT5's MQL5\Experts folder
+# - restarts MT5 with the bot attached to a GOLD# M15 chart and algo trading enabled
+$ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$base   = 'https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1'
+$symbol = if ($env:TRADEFULL_SYMBOL) { $env:TRADEFULL_SYMBOL } else { 'GOLD#' }
+
+Write-Host '== TradeFull installer ==' -ForegroundColor Cyan
+
+# 1) Find MetaTrader 5
+$proc = Get-Process terminal64 -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($proc) { $exe = $proc.Path }
+else {
+    $exe = Get-ChildItem 'C:\Program Files\*\terminal64.exe', 'C:\Program Files (x86)\*\terminal64.exe' -ErrorAction SilentlyContinue |
+           Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $exe) { throw 'MetaTrader 5 (terminal64.exe) not found. Install XM MT5 first.' }
+$installDir = (Split-Path $exe).TrimEnd('\')
+Write-Host "MT5: $exe"
+
+# 2) Find its data folder (where MQL5\Experts lives)
+$dataDir = $null
+Get-ChildItem "$env:APPDATA\MetaQuotes\Terminal\*\origin.txt" -ErrorAction SilentlyContinue | ForEach-Object {
+    if ((Get-Content $_.FullName -Raw).Trim().TrimEnd('\') -ieq $installDir) { $dataDir = $_.DirectoryName }
+}
+if (-not $dataDir) { $dataDir = $installDir }   # portable install
+$experts = Join-Path $dataDir 'MQL5\Experts'
+New-Item -ItemType Directory -Force -Path $experts | Out-Null
+Write-Host "Data folder: $dataDir"
+
+# 3) Download the bot
+$target = Join-Path $experts 'TradeFull_Scalper.ex5'
+Invoke-WebRequest "$base/TradeFull_Scalper.ex5" -OutFile $target -UseBasicParsing
+Write-Host "Bot saved: $target" -ForegroundColor Green
+
+# 4) Start-up config: enable algo trading, open GOLD# M15 with the bot attached
+$ini = Join-Path $env:TEMP 'tradefull_start.ini'
+@"
+[Experts]
+AllowLiveTrading=1
+AllowDllImport=0
+Enabled=1
+Account=0
+Profile=0
+[StartUp]
+Expert=TradeFull_Scalper
+Symbol=$symbol
+Period=M15
+"@ | Set-Content -Path $ini -Encoding ASCII
+
+# 5) Restart MT5 with that config
+if ($proc) {
+    Write-Host 'Closing MT5...'
+    $proc.CloseMainWindow() | Out-Null
+    if (-not $proc.WaitForExit(20000)) { $proc.Kill() }
+    Start-Sleep -Seconds 2
+}
+Start-Process -FilePath $exe -ArgumentList "/config:`"$ini`""
+Write-Host ''
+Write-Host "Done. MT5 is starting with TradeFull on $symbol M15." -ForegroundColor Green
+Write-Host 'Check: TradeFull panel at the top-left of the chart, and the Algo Trading button is green.'
