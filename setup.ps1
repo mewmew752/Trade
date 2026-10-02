@@ -2,6 +2,7 @@
 # Usage (PowerShell):  irm https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/setup.ps1 | iex
 # - downloads TradeFull_Scalper.ex5 into MT5's MQL5\Experts folder
 # - restarts MT5 with the bot attached to a GOLD# M15 chart and algo trading enabled
+# - optional Telegram: set $env:TRADEFULL_TG_TOKEN='<bot token>' before running (remembered for later runs)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $base   = 'https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1'
@@ -35,7 +36,18 @@ $target = Join-Path $experts 'TradeFull_Scalper.ex5'
 Invoke-WebRequest "$base/TradeFull_Scalper.ex5" -OutFile $target -UseBasicParsing
 Write-Host "Bot saved: $target" -ForegroundColor Green
 
-# 4) Start-up config: enable algo trading, open GOLD# M15 with the bot attached
+# 4) Bot inputs (Telegram token is kept on this machine only)
+$cfgDir = Join-Path $env:APPDATA 'TradeFull'
+New-Item -ItemType Directory -Force -Path $cfgDir | Out-Null
+$tokFile = Join-Path $cfgDir 'telegram_token.txt'
+if ($env:TRADEFULL_TG_TOKEN) { Set-Content -Path $tokFile -Value $env:TRADEFULL_TG_TOKEN.Trim() -Encoding ASCII }
+$token = if (Test-Path $tokFile) { (Get-Content $tokFile -Raw).Trim() } else { '' }
+$presets = Join-Path $dataDir 'MQL5\Presets'
+New-Item -ItemType Directory -Force -Path $presets | Out-Null
+"InpTelegramToken=$token" | Set-Content -Path (Join-Path $presets 'TradeFull.set') -Encoding ASCII
+if ($token) { Write-Host 'Telegram: token set' -ForegroundColor Green } else { Write-Host 'Telegram: not set (optional)' }
+
+# 5) Start-up config: enable algo trading, open GOLD# M15 with the bot attached
 $ini = Join-Path $env:TEMP 'tradefull_start.ini'
 @"
 [Experts]
@@ -46,11 +58,12 @@ Account=0
 Profile=0
 [StartUp]
 Expert=TradeFull_Scalper
+ExpertParameters=TradeFull.set
 Symbol=$symbol
 Period=M15
 "@ | Set-Content -Path $ini -Encoding ASCII
 
-# 5) Restart MT5 with that config
+# 6) Restart MT5 with that config
 if ($proc) {
     Write-Host 'Closing MT5...'
     $proc.CloseMainWindow() | Out-Null
@@ -61,3 +74,8 @@ Start-Process -FilePath $exe -ArgumentList "/config:`"$ini`""
 Write-Host ''
 Write-Host "Done. MT5 is starting with TradeFull on $symbol M15." -ForegroundColor Green
 Write-Host 'Check: TradeFull panel at the top-left of the chart, and the Algo Trading button is green.'
+if ($token) {
+    Write-Host ''
+    Write-Host 'Telegram: in MT5 open Tools > Options > Expert Advisors, tick "Allow WebRequest for listed URL"' -ForegroundColor Yellow
+    Write-Host '          and add https://api.telegram.org  - then send /start to your bot in Telegram.' -ForegroundColor Yellow
+}
