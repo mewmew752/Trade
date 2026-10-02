@@ -1,7 +1,7 @@
 # TradeFull one-line installer for XM MetaTrader 5 (Windows)
 # Usage (PowerShell):  irm https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/setup.ps1 | iex
 # - downloads TradeFull_Scalper.ex5 into MT5's MQL5\Experts folder
-# - restarts MT5 with the bot attached to a GOLD# M15 chart and algo trading enabled
+# - restarts MT5 with the bot attached to a GOLD# M1 chart and algo trading enabled
 # - optional Telegram: set $env:TRADEFULL_TG_TOKEN='<bot token>' before running (remembered for later runs)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -47,7 +47,7 @@ New-Item -ItemType Directory -Force -Path $presets | Out-Null
 "InpTelegramToken=$token" | Set-Content -Path (Join-Path $presets 'TradeFull.set') -Encoding ASCII
 if ($token) { Write-Host 'Telegram: token set' -ForegroundColor Green } else { Write-Host 'Telegram: not set (optional)' }
 
-# 5) Start-up config: enable algo trading, open GOLD# M15 with the bot attached
+# 5) Start-up config: enable algo trading, open GOLD# M1 with the bot attached
 $ini = Join-Path $env:TEMP 'tradefull_start.ini'
 @"
 [Experts]
@@ -60,7 +60,7 @@ Profile=0
 Expert=TradeFull_Scalper
 ExpertParameters=TradeFull.set
 Symbol=$symbol
-Period=M15
+Period=M1
 "@ | Set-Content -Path $ini -Encoding ASCII
 
 # 6) Restart MT5 with that config
@@ -82,7 +82,7 @@ if (-not (Get-Process terminal64 -ErrorAction SilentlyContinue | Where-Object { 
     Write-Host 'MT5 did not start - please run this command again.' -ForegroundColor Red
 }
 Write-Host ''
-Write-Host "Done. MT5 is starting with TradeFull on $symbol M15." -ForegroundColor Green
+Write-Host "Done. MT5 is starting with TradeFull on $symbol M1." -ForegroundColor Green
 Write-Host 'Check: TradeFull panel at the top-left of the chart, and the Algo Trading button is green.'
 if ($token) {
     Write-Host ''

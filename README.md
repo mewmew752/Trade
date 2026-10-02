@@ -9,7 +9,7 @@ irm https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/setup.
 ```
 
 สคริปต์จะดาวน์โหลด `TradeFull_Scalper.ex5` ไปไว้ในโฟลเดอร์ `MQL5\Experts` ของ MT5,
-เปิด Algo Trading และเปิดกราฟ `GOLD#` M15 พร้อมวางบอทให้
+เปิด Algo Trading และเปิดกราฟ `GOLD#` M1 พร้อมวางบอทให้
 
 ถ้าทองในบัญชีชื่ออื่น (เช่น `GOLD`) ให้รันแบบนี้แทน:
 
