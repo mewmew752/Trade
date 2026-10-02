@@ -64,13 +64,23 @@ Period=M15
 "@ | Set-Content -Path $ini -Encoding ASCII
 
 # 6) Restart MT5 with that config
-if ($proc) {
+# MT5 runs one instance per install: a running copy would ignore the new config,
+# so close every instance of this terminal and wait until it has really exited.
+$running = @(Get-Process terminal64 -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq $exe })
+if ($running.Count -gt 0) {
     Write-Host 'Closing MT5...'
-    $proc.CloseMainWindow() | Out-Null
-    if (-not $proc.WaitForExit(20000)) { $proc.Kill() }
-    Start-Sleep -Seconds 2
+    foreach ($p in $running) { $p.CloseMainWindow() | Out-Null }
+    foreach ($p in $running) { if (-not $p.WaitForExit(30000)) { $p.Kill(); $p.WaitForExit(10000) | Out-Null } }
+    for ($i = 0; $i -lt 30 -and (Get-Process terminal64 -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq $exe }); $i++) {
+        Start-Sleep -Seconds 1
+    }
+    Start-Sleep -Seconds 3
 }
 Start-Process -FilePath $exe -ArgumentList "/config:`"$ini`""
+Start-Sleep -Seconds 15
+if (-not (Get-Process terminal64 -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq $exe })) {
+    Write-Host 'MT5 did not start - please run this command again.' -ForegroundColor Red
+}
 Write-Host ''
 Write-Host "Done. MT5 is starting with TradeFull on $symbol M15." -ForegroundColor Green
 Write-Host 'Check: TradeFull panel at the top-left of the chart, and the Algo Trading button is green.'
