@@ -1,14 +1,14 @@
 # TradeFull one-line installer for XM MetaTrader 5 (Windows)
 # Usage (PowerShell):  irm https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/setup.ps1 | iex
-# - downloads TradeFull_Scalper.ex5 into MT5's MQL5\Experts folder
-# - restarts MT5 with the bot attached to a GOLD# M1 chart and algo trading enabled
+# - downloads XauRsiTrend.ex5 into MT5's MQL5\Experts folder and removes the retired TradeFull_Scalper.ex5
+# - restarts MT5 with the bot attached to a GOLD# M5 chart and algo trading enabled
 # - optional Telegram: set $env:TRADEFULL_TG_TOKEN='<bot token>' before running (remembered for later runs)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $base   = 'https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1'
 $symbol = if ($env:TRADEFULL_SYMBOL) { $env:TRADEFULL_SYMBOL } else { 'GOLD#' }
 
-Write-Host '== TradeFull installer ==' -ForegroundColor Cyan
+Write-Host '== TradeFull installer (XauRsiTrend M5) ==' -ForegroundColor Cyan
 
 # 1) Find MetaTrader 5
 $proc = Get-Process terminal64 -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -32,8 +32,8 @@ New-Item -ItemType Directory -Force -Path $experts | Out-Null
 Write-Host "Data folder: $dataDir"
 
 # 3) Download the bot
-$target = Join-Path $experts 'TradeFull_Scalper.ex5'
-Invoke-WebRequest "$base/TradeFull_Scalper.ex5" -OutFile $target -UseBasicParsing
+$target = Join-Path $experts 'XauRsiTrend.ex5'
+Invoke-WebRequest "$base/XauRsiTrend.ex5" -OutFile $target -UseBasicParsing
 Write-Host "Bot saved: $target" -ForegroundColor Green
 
 # 4) Bot inputs (Telegram token is kept on this machine only)
@@ -44,10 +44,17 @@ if ($env:TRADEFULL_TG_TOKEN) { Set-Content -Path $tokFile -Value $env:TRADEFULL_
 $token = if (Test-Path $tokFile) { (Get-Content $tokFile -Raw).Trim() } else { '' }
 $presets = Join-Path $dataDir 'MQL5\Presets'
 New-Item -ItemType Directory -Force -Path $presets | Out-Null
-"InpTelegramToken=$token" | Set-Content -Path (Join-Path $presets 'TradeFull.set') -Encoding ASCII
+# InpTimeframe=5 is PERIOD_M5. Spread 50 points and Friday 20:00 are provisional values (see RISK_SPEC).
+@"
+InpTimeframe=5
+InpMaxSpreadPoints=50
+InpFridayCutoff=20:00
+InpRiskPercent=0.5
+InpTelegramToken=$token
+"@ | Set-Content -Path (Join-Path $presets 'XauRsiTrend.set') -Encoding ASCII
 if ($token) { Write-Host 'Telegram: token set' -ForegroundColor Green } else { Write-Host 'Telegram: not set (optional)' }
 
-# 5) Start-up config: enable algo trading, open GOLD# M1 with the bot attached
+# 5) Start-up config: enable algo trading, open GOLD# M5 with the bot attached
 $ini = Join-Path $env:TEMP 'tradefull_start.ini'
 @"
 [Experts]
@@ -57,10 +64,10 @@ Enabled=1
 Account=0
 Profile=0
 [StartUp]
-Expert=TradeFull_Scalper
-ExpertParameters=TradeFull.set
+Expert=XauRsiTrend
+ExpertParameters=XauRsiTrend.set
 Symbol=$symbol
-Period=M1
+Period=M5
 "@ | Set-Content -Path $ini -Encoding ASCII
 
 # 6) Restart MT5 with that config
@@ -76,14 +83,18 @@ if ($running.Count -gt 0) {
     }
     Start-Sleep -Seconds 3
 }
+# retire the old AI bot: without its file the old chart can no longer run it
+Remove-Item (Join-Path $experts 'TradeFull_Scalper.ex5') -Force -ErrorAction SilentlyContinue
 Start-Process -FilePath $exe -ArgumentList "/config:`"$ini`""
 Start-Sleep -Seconds 15
 if (-not (Get-Process terminal64 -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq $exe })) {
     Write-Host 'MT5 did not start - please run this command again.' -ForegroundColor Red
 }
 Write-Host ''
-Write-Host "Done. MT5 is starting with TradeFull on $symbol M1." -ForegroundColor Green
-Write-Host 'Check: TradeFull panel at the top-left of the chart, and the Algo Trading button is green.'
+Write-Host "Done. MT5 is starting with XauRsiTrend on $symbol M5." -ForegroundColor Green
+Write-Host 'Check: XauRsiTrend text at the top-left of the chart, and the Algo Trading button is green.'
+Write-Host 'Demo accounts only: on a real account the bot refuses to start (InpAllowRealAccount=false).'
+Write-Host 'You may close the old GOLD# M1 chart (the old bot has been removed).'
 if ($token) {
     Write-Host ''
     Write-Host 'Telegram: in MT5 open Tools > Options > Expert Advisors, tick "Allow WebRequest for listed URL"' -ForegroundColor Yellow
