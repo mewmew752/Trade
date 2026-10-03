@@ -37,3 +37,16 @@ $env:TRADEFULL_TG_TOKEN='TOKEN'; irm https://raw.githubusercontent.com/mewmew752
 บอทจะใช้แชทเดิมที่บอทตัวเก่าเคยเจอให้อัตโนมัติ ถ้าไม่มีข้อความเข้า ให้ส่ง `/start` หาบอทอีกครั้ง
 
 token เก็บไว้ในเครื่อง VPS เท่านั้น (`%APPDATA%\TradeFull`) ห้ามส่ง token ให้ใคร
+
+## ส่งข้อมูลราคาจริงของ XM ให้ Claude วิจัย (ไม่เทรด ไม่แตะเงิน)
+
+เปิด PowerShell บน VPS แล้ววาง:
+
+```powershell
+irm "https://raw.githubusercontent.com/mewmew752/Trade/ccr-9e2c76a8-vu39m1/export.ps1?v=1" | iex
+```
+
+- MT5 จะปิดแล้วเปิดใหม่เอง ดึงประวัติ GOLD# แบบ M1 ตั้งแต่ 1 ม.ค. 2026 พร้อม **สเปรดจริงของ XM ทุกนาที** (รอได้ถึงประมาณ 10 นาที)
+- ไฟล์ `GOLD_M1_....csv` จะถูกส่งเข้า **Telegram** ของคุณ (บอทตัวเดิม) และเซฟไว้บน **Desktop** ของ VPS
+- เปิด Telegram บนมือถือ → แตะไฟล์ → แชร์/บันทึก → แนบไฟล์นั้นในแชทกับ Claude
+- บอทเทรดยังทำงานตามปกติหลัง MT5 เปิดใหม่ (กราฟ GOLD# M1 ที่เปิดเพิ่มมาปิดทิ้งได้)
